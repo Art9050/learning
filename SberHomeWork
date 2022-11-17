@@ -28,9 +28,33 @@ create table de11an.kart_Manufacturer(
 	Code char(1) primary key
 	);
 
-
 insert into de11an.kart_Manufacturer (Name, Code) values ('NOBEL', 'N');
 insert into de11an.kart_Manufacturer (Name, Code) values ('WAG', 'W');
+
+---Country-
+CREATE TABLE de11an.kart_Country(
+	Country VARCHAR(5) PRIMARY KEY,
+	CountryName VARCHAR(50) UNIQUE
+	);
+
+INSERT INTO de11an.kart_Country(Country, CountryName) VALUES('Ru', 'Russia');
+INSERT INTO de11an.kart_Country(Country, CountryName) VALUES('Kz', 'Kazakhstan');
+
+---defect-
+CREATE TABLE de11an.kart_defect(
+	Description VARCHAR(100) NOT NULL,
+	DefectCode CHAR(2) PRIMARY KEY
+	);
+
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Вибрация, дребезг, шум.', 'd1');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Единичные', 'd2');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Истирание покрытия','d3');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Люфт', 'd4');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Разрушение, обрыв', 'd5');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Рузрушение уплотнителя', 'd6');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Саморазбор, Разрушен фиксатор', 'd7');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Скрип', 'd8');
+INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Тугое перемещение, подклинивание, не включается', 'd9');
 
 ---PartReason-
 create table de11an.kart_PartReason(
@@ -39,7 +63,6 @@ create table de11an.kart_PartReason(
 	Price NUMERIC(18,5) not null,
 	Manufacturer char(1) not null REFERENCES de11an.kart_Manufacturer(Code)
 	);
-
 
 insert into de11an.kart_PartReason (PartCode, PartName, Price, Manufacturer) values ('51231-1433113-51', 'Alpha MT Linkage', '927.0', 'N');
 insert into de11an.kart_PartReason (PartCode, PartName, Price, Manufacturer) values ('51231-1433113-55', 'Alpha MT Linkage', '934.0', 'N');
@@ -55,39 +78,6 @@ insert into de11an.kart_PartReason (PartCode, PartName, Price, Manufacturer) val
 insert into de11an.kart_PartReason (PartCode, PartName, Price, Manufacturer) values ('34531-33444 -', 'Alpha CLASSIC switch', '342.0', 'W');
 insert into de11an.kart_PartReason (PartCode, PartName, Price, Manufacturer) values ('34531-33445 -', 'Alpha switch LUX', '518.7', 'W');
 insert into de11an.kart_PartReason (PartCode, PartName, Price, Manufacturer) values ('51235-1433313-12', 'Alpha AT switch', '1573.0', 'W');
-
-
----Country-
-CREATE TABLE de11an.kart_Country(
-	Country VARCHAR(5) PRIMARY KEY,
-	CountryName VARCHAR(50) UNIQUE
-	);
-
-
-
-INSERT INTO de11an.kart_Country(Country, CountryName) VALUES('Ru', 'Russia');
-INSERT INTO de11an.kart_Country(Country, CountryName) VALUES('Kz', 'Kazakhstan');
-
----defect-
-CREATE TABLE de11an.kart_defect(
-	Description VARCHAR(100) NOT NULL,
-	DefectCode CHAR(2) PRIMARY KEY
-	);
-
-
-
-
-
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Вибрация, дребезг, шум.', 'd1');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Единичные', 'd2');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Истирание покрытия','d3');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Люфт', 'd4');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Разрушение, обрыв', 'd5');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Рузрушение уплотнителя', 'd6');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Саморазбор, Разрушен фиксатор', 'd7');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Скрип', 'd8');
-INSERT INTO de11an.kart_defect(Description, DefectCode) VALUES('Тугое перемещение, подклинивание, не включается', 'd9');
-
 
 ---PartFitted-
 CREATE TABLE de11an.kart_PartFitted(
@@ -111,89 +101,6 @@ insert into de11an.kart_PartFitted (PartCode) values ('34512-33453 -');
 insert into de11an.kart_PartFitted (PartCode) values ('34531-33444 -');
 insert into de11an.kart_PartFitted (PartCode) values ('34531-33445 -');
 insert into de11an.kart_PartFitted (PartCode) values ('51235-1433313-12');
-
----WarrantyRepair- не работает
-CREATE TABLE de11an.kart_WarrantyRepair(
-	SupportCase SERIAL PRIMARY KEY,
-	country VARCHAR(5) REFERENCES de11an.kart_Country(Country),
-	VinNumber VARCHAR(50) REFERENCES de11an.kart_CAR(VinNumber),
-	Mileage INT NOT null,
-	Dealer INT REFERENCES de11an.kart_Dealer(DealerCode), ----SQL Error [42830]
-	WorkOrderNumber INT NOT NULL,
-	DefectRepaireDate DATE NOT NULL,
-	DefectCode CHAR(2) REFERENCES de11an.kart_defect(DefectCode),
-	DismontedPartReason VARCHAR(50) REFERENCES de11an.kart_PartReason(PartCode),
-	Quntity int,
-	IdPartFitted int REFERENCES de11an.kart_PartFitted(idpart),
-	CostOfWorking NUMERIC(18,5) REFERENCES de11an.kart_Dealer(WorkCost),
-	WorkTime NUMERIC(3,2),
-	PriceOfReason_part NUMERIC(18,5) REFERENCES de11an.kart_PartReason(Price),
-	CostOfWork NUMERIC(18,5),
-	Pay NUMERIC(18,5)
-	);
-
----WarrantyRepair- работает - коменты правки Анатолия
-CREATE TABLE de11an.kart_WarrantyRepair(
-	SupportCase SERIAL PRIMARY KEY,
-	country VARCHAR(5) REFERENCES de11an.kart_Country(Country),
-	VinNumber VARCHAR(50) REFERENCES de11an.kart_CAR(VinNumber),
-	Mileage INT NOT null,
-	Dealer INT REFERENCES de11an.kart_Dealer(DealerCode), ----SQL Error [42830]
-	WorkOrderNumber INT NOT NULL,
-	DefectRepaireDate DATE NOT NULL,
-	DefectCode CHAR(2) REFERENCES de11an.kart_defect(DefectCode),
-	DismontedPartReason VARCHAR(50) REFERENCES de11an.kart_PartReason(PartCode),
-	Quntity int,
-	IdPartFitted int REFERENCES de11an.kart_PartFitted(idpart),
-	WorkTime NUMERIC(3,2),
-	CostOfWork NUMERIC(18,5),
-	Pay NUMERIC(18,5)
-	);
-
-insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, CostOfWorking, WorkTime, PriceOfReason_part, CostOfWork, Pay) values('RU', 'JFR382070G0419798', '14155', '78800', '770', '2017-05-30', 'd1', '51231-1433113-51', '1', '51231-1433113-55', '2.0', '1.36', '1060.8', '1994.8');
-
-
-
-insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, CostOfWorking, WorkTime, PriceOfReason_part, CostOfWork, Pay) values('RU', 'Z0X382059H0007871', '7888', '9909', '806872', '2017-06-16', 'd1', '51231-1433113-55', '1', '51231-1433113-55', '2.0', '1.05', '953.4', '1887.4');
-insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, CostOfWorking, WorkTime, PriceOfReason_part, CostOfWork, Pay) values('RU', 'JFRGFL130HY078770', '8553', '69098', '2676', '2017-07-09', 'd1', '34512-33514 -', '1', '34512-33514 -', '3.0', '4.55', '2598.05', '3707.05');
-insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, CostOfWorking, WorkTime, PriceOfReason_part, CostOfWork, Pay) values('RU', 'JFRGFL110HY076970', '47425', '79668', '7860', '2017-07-11', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.6', '4544.8', '5634.8');
-
-
-
----CAR-
-CREATE TABLE de11an.kart_CAR(
-	VinNumber VARCHAR(50) PRIMARY KEY, 
-	ProductionDate DATE,
-	VehileSaleDate DATE,
-	VehileType VARCHAR(5) REFERENCES de11an.kart_VehileType(id),
-	Warranty VARCHAR(3) REFERENCES de11an.kart_Warranty(Type)
-	);
-
-
-insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY091899', '2016-06-28', '2016-07-04', 't2', 'a');
-insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY096161', '2016-08-13', '2016-09-10', 't2', 'a');
-insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY009197', '2016-03-01', '2016-04-22', 't2', 'a');
-insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY006698', '2016-01-11', '2016-02-02', 't2', 'a');
-insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY097876', '2016-08-07', '2016-08-21', 't2', 'a');
-
----VehileType-
-CREATE TABLE de11an.kart_VehileType(	
-	VehileType VARCHAR(10) PRIMARY key,
-	id VARCHAR(5) UNIQUE NOT NULL
-	);	
-
-insert into de11an.kart_VehileType (VehileType, id) values('3820', 't1');
-insert into de11an.kart_VehileType (VehileType, id) values('LFG1', 't2');
-insert into de11an.kart_VehileType (VehileType, id) values('3822', 't3');
-insert into de11an.kart_VehileType (VehileType, id) values('3821', 't4');
-insert into de11an.kart_VehileType (VehileType, id) values('3824', 't5');
-insert into de11an.kart_VehileType (VehileType, id) values('2170', 't6');
-insert into de11an.kart_VehileType (VehileType, id) values('GFK3', 't7');
-insert into de11an.kart_VehileType (VehileType, id) values('LFGA', 't8');
-insert into de11an.kart_VehileType (VehileType, id) values('GFK1', 't9');
-insert into de11an.kart_VehileType (VehileType, id) values('LFG3', 't10');
-insert into de11an.kart_VehileType (VehileType, id) values('2172', 't11');
-insert into de11an.kart_VehileType (VehileType, id) values('2349', 't12');
 
 ---Warranty-
 CREATE TABLE de11an.kart_Warranty(	
@@ -221,9 +128,56 @@ insert into de11an.kart_Dealer (DealerCode, DealerName, WorkCost) values('77669'
 insert into de11an.kart_Dealer (DealerCode, DealerName, WorkCost) values('77696', '"РОНА-СЕРВИС"', '780.0');
 insert into de11an.kart_Dealer (DealerCode, DealerName, WorkCost) values('79809', '"АВТОЦЕНТР ИНТЕР"', '447.0');
 
+---CAR-
+CREATE TABLE de11an.kart_CAR(
+	VinNumber VARCHAR(50) PRIMARY KEY, 
+	ProductionDate DATE,
+	VehileSaleDate DATE,
+	VehileType VARCHAR(5) REFERENCES de11an.kart_VehileType(id),
+	Warranty VARCHAR(3) REFERENCES de11an.kart_Warranty(Type)
+	);
+
+insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY091899', '2016-06-28', '2016-07-04', 't2', 'a');
+insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY096161', '2016-08-13', '2016-09-10', 't2', 'a');
+insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY009197', '2016-03-01', '2016-04-22', 't2', 'a');
+insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY006698', '2016-01-11', '2016-02-02', 't2', 'a');
+insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL130GY097876', '2016-08-07', '2016-08-21', 't2', 'a');
+
+---WarrantyRepair- 
+CREATE TABLE de11an.kart_WarrantyRepair(
+	SupportCase SERIAL PRIMARY KEY,
+	country VARCHAR(5) REFERENCES de11an.kart_Country(Country),
+	VinNumber VARCHAR(50) REFERENCES de11an.kart_CAR(VinNumber),
+	Mileage INT NOT null,
+	Dealer INT REFERENCES de11an.kart_Dealer(DealerCode), ----SQL Error [42830]
+	WorkOrderNumber INT NOT NULL,
+	DefectRepaireDate DATE NOT NULL,
+	DefectCode CHAR(2) REFERENCES de11an.kart_defect(DefectCode),
+	DismontedPartReason VARCHAR(50) REFERENCES de11an.kart_PartReason(PartCode),
+	Quntity int,
+	IdPartFitted int REFERENCES de11an.kart_PartFitted(idpart),
+	WorkTime NUMERIC(3,2),
+	CostOfWork NUMERIC(18,5),
+	Pay NUMERIC(18,5)
+	);
+
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFL110NY698606', '13075', '60706', '801788', '2022.12.30', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.29', '4238.52');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFL110MY587969', '23525', '87608', '907', '2022.12.23', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '1.91', '1428.68');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFR382040N0816896', '23693', '68009', '8766', '2022.12.11', 'd7', '51231-1433113-55', '1', '51231-1433113-55', '2.0', '1.46', '1092.08');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFK330LY496006', '42334', '76667', '88888', '2022.11.21', 'd9', '34512-33514 -', '1', '34512-33514 -', '3.0', '4.36', '4307.68');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFK110MY519199', '24482', '77698', '11872', '2022.11.21', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.66', '4604.08');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFL110NY678897', '14769', '76707', '997981', '2022.11.12', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.61', '4554.68');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFL110MY587867', '30902', '600', '20182', '2022.11.09', 'd9', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.35', '2818.8');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFL110NY698677', '22303', '77607', '7662', '2022.11.07', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.31', '2357.57');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFK110MY518816', '26246', '76706', '28107', '2022.10.27', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.31', '3223.88');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFL330KY277779', '66147', '69807', '998611', '2022.10.24', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.25', '3179.0');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFL110NY678977', '27654', '69807', '72068', '2022.10.23', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.25', '3179.0');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFK110MY476096', '31050', '79800', '91707', '2022.10.17', 'd1', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.61', '3448.28');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFR382040M0799686', '22547', '89000', '71666', '2022.10.16', 'd1', '51231-1433113-55', '1', '51231-1433113-55', '2.0', '1.46', '798.62');
+insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('RU', 'JFRGFK110MY586868', '26392', '77609', '12827', '2022.10.11', 'd5', '34512-35413 -', '1', '34512-35413 -', '4.0', '4.31', '2357.57');
 
 
-drop table de11an.kart_WarrantyRepair;
+/* drop table de11an.kart_WarrantyRepair;
 drop table de11an.kart_CAR;
 drop table de11an.kart_Dealer;
 drop table de11an.kart_Warranty;
@@ -232,4 +186,4 @@ drop table de11an.kart_PartFitted;
 drop table de11an.kart_PartReason;	
 drop table de11an.kart_defect;	
 drop table de11an.kart_Country;
-drop table de11an.kart_Manufacturer;	
+drop table de11an.kart_Manufacturer;	 */
