@@ -128,6 +128,25 @@ insert into de11an.kart_Dealer (DealerCode, DealerName, WorkCost) values('77669'
 insert into de11an.kart_Dealer (DealerCode, DealerName, WorkCost) values('77696', '"РОНА-СЕРВИС"', '780.0');
 insert into de11an.kart_Dealer (DealerCode, DealerName, WorkCost) values('79809', '"АВТОЦЕНТР ИНТЕР"', '447.0');
 
+---VehileType-
+CREATE TABLE de11an.kart_VehileType(	
+	VehileType VARCHAR(10) PRIMARY key,
+	id VARCHAR(5) UNIQUE NOT NULL
+	);	
+
+insert into de11an.kart_VehileType (VehileType, id) values('3820', 't1');
+insert into de11an.kart_VehileType (VehileType, id) values('LFG1', 't2');
+insert into de11an.kart_VehileType (VehileType, id) values('3822', 't3');
+insert into de11an.kart_VehileType (VehileType, id) values('3821', 't4');
+insert into de11an.kart_VehileType (VehileType, id) values('3824', 't5');
+insert into de11an.kart_VehileType (VehileType, id) values('2170', 't6');
+insert into de11an.kart_VehileType (VehileType, id) values('GFK3', 't7');
+insert into de11an.kart_VehileType (VehileType, id) values('LFGA', 't8');
+insert into de11an.kart_VehileType (VehileType, id) values('GFK1', 't9');
+insert into de11an.kart_VehileType (VehileType, id) values('LFG3', 't10');
+insert into de11an.kart_VehileType (VehileType, id) values('2172', 't11');
+insert into de11an.kart_VehileType (VehileType, id) values('2349', 't12');
+
 ---CAR-
 CREATE TABLE de11an.kart_CAR(
 	VinNumber VARCHAR(50) PRIMARY KEY, 
