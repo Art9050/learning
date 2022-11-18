@@ -105,12 +105,12 @@ insert into de11an.kart_PartFitted (PartCode) values ('51235-1433313-12');
 ---Warranty-
 CREATE TABLE de11an.kart_Warranty(	
 	Warranty INT NOT null,
-	Type VARCHAR(3) PRIMARY KEY 
+	WType VARCHAR(3) PRIMARY KEY 
 	);	
 
-insert into de11an.kart_Warranty (Warranty, Type) values(36, 'a');
-insert into de11an.kart_Warranty (Warranty, Type) values(24, 'b');
-insert into de11an.kart_Warranty (Warranty, Type) values(12, 'c');
+insert into de11an.kart_Warranty (Warranty, WType) values(36, 'a');
+insert into de11an.kart_Warranty (Warranty, WType) values(24, 'b');
+insert into de11an.kart_Warranty (Warranty, WType) values(12, 'c');
 
 ---Dealer-
 CREATE TABLE de11an.kart_Dealer(	
@@ -155,7 +155,7 @@ CREATE TABLE de11an.kart_CAR(
 	ProductionDate DATE,
 	VehileSaleDate DATE,
 	VehileType VARCHAR(5) REFERENCES de11an.kart_VehileType(id),
-	Warranty VARCHAR(3) REFERENCES de11an.kart_Warranty(Type)
+	Warranty VARCHAR(3) REFERENCES de11an.kart_Warranty(WType)
 	);
 
 insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('Z0X382079M0771767', '2021.05.10', '2021.05.11', 't1', 'a');
