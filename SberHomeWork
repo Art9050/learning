@@ -169,13 +169,31 @@ insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileTy
 insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL110NY679816', '2022.01.18', '2022.01.27', 't2', 'a');
 insert into de11an.kart_CAR (VinNumber, ProductionDate,	VehileSaleDate,	VehileType, Warranty) values('JFRGFL110NY601196', '2021.12.29', '2022.01.28', 't2', 'a');
 
+---WorkOrderNumber-
+CREATE TABLE de11an.kart_WorkOrderNumber(
+	VinNumber VARCHAR(50) REFERENCES de11an.kart_CAR(VinNumber),
+	Dealer VARCHAR(10) REFERENCES de11an.kart_Dealer(DealerCode),
+	primary KEY (VinNumber, Dealer)
+	);
+
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFRGFL110NY698606', '60706');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFR382040N0816896', '68009');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFRGFL110NY678897', '76707');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFRGFL110NY678977', '69807');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFRGFK110NY687668', '79868');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFRGFL110NY601196', '86707');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFRGFK110NY686016', '79868');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('JFRGFL110NY679816', '89709');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('Z0X382079M0771767', '77607');
+insert into de11an.kart_WorkOrderNumber( VinNumber, Dealer) values('Z0X382079M0781698', '70009');
+
 ---WarrantyRepair- 
 CREATE TABLE de11an.kart_WarrantyRepair(
 	SupportCase SERIAL PRIMARY KEY,
 	country VARCHAR(5) REFERENCES de11an.kart_Country(Country),
-	VinNumber VARCHAR(50) REFERENCES de11an.kart_CAR(VinNumber),
+	VinNumber VARCHAR(50),
 	Mileage INT NOT null,
-	Dealer INT REFERENCES de11an.kart_Dealer(DealerCode), ----SQL Error [42830]
+	Dealer VARCHAR(10),
 	WorkOrderNumber INT NOT NULL,
 	DefectRepaireDate DATE NOT NULL,
 	DefectCode CHAR(2) REFERENCES de11an.kart_defect(DefectCode),
@@ -184,7 +202,8 @@ CREATE TABLE de11an.kart_WarrantyRepair(
 	IdPartFitted int REFERENCES de11an.kart_PartFitted(idpart),
 	WorkTime NUMERIC(3,2),
 	CostOfWork NUMERIC(18,5),
-	Pay NUMERIC(18,5)
+	Pay NUMERIC(18,5),
+	FOREIGN key (VinNumber, Dealer) REFERENCES de11an.kart_WorkOrderNumber(VinNumber, Dealer)
 	);
 
 insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, WorkOrderNumber, DefectRepaireDate, DefectCode, DismontedPartReason, Quntity, IdPartFitted, WorkTime,  CostOfWork, Pay) values('Ru', 'JFRGFL110NY698606', '13075', '60706', '801788', '2022.12.30', 'd1', '34512-35413 -', '1', '4', '4.29', '4238.52', '5195.52');
@@ -201,6 +220,7 @@ insert into de11an.kart_WarrantyRepair(country, VinNumber, Mileage, Dealer, Work
 
 
 /* drop table de11an.kart_WarrantyRepair;
+drop table de11an.kart_WorkOrderNumber;
 drop table de11an.kart_CAR;
 drop table de11an.kart_Dealer;
 drop table de11an.kart_Warranty;
