@@ -4,10 +4,10 @@
 ----------------------------------------------------------------------------
 -- Подготовка данных
 
-truncate table de11an.kart_source;
-truncate table de11an.kart_stg;
-truncate table de11an.kart_target;
-truncate table de11an.kart_meta;
+--truncate table de11an.kart_source;
+--truncate table de11an.kart_stg;
+--truncate table de11an.kart_target;
+--truncate table de11an.kart_meta;
 
 -- добавление
 insert into de11an.kart_source ( id, val, update_dt ) values ( 1, 'A', now() );
@@ -41,18 +41,12 @@ create table de11an.kart_stg(
 	update_dt timestamp(0)
 );
 
---create table de11an.kart_target (
---	id integer,
---	val varchar(50),
---	create_dt timestamp(0),
---	update_dt timestamp(0)
---);
 
 create table de11an.kart_target ( 
  id integer, 
  val varchar(50), 
- create_dt timestamp(0), 
- update_dt timestamp(0), 
+ start_dt timestamp(0), 
+ end_dt timestamp(0), 
  del_fg char(1) DEFAULT 0
 );
 
@@ -91,8 +85,8 @@ insert into de11an.kart_stg_del( id )
 select id from de11an.kart_source;
 
 -- 4. Загрузка в приемник "вставок" на источнике (формат SCD1).
---сравнивает по ID если нет - вставлять, de11an.kart_target.update_dt - ставить макс_дату
-insert into de11an.kart_target( id, val, create_dt, update_dt )
+--сравнивает по ID если нет - вставлять, de11an.kart_target.end_dt - ставить макс_дату
+insert into de11an.kart_target( id, val, start_dt, end_dt )
 select 
 	stg.id, 
 	stg.val, 
@@ -108,7 +102,7 @@ where tgt.id is null;
 --5-1. Обновление записей удовлетворяющих условия. 
 update de11an.kart_target
 set 
-	update_dt = tmp.update_dt - interval  '1 sec' 
+	end_dt = tmp.update_dt - interval  '1 sec' 
 from (
 	select 
 		stg.id, 
@@ -129,7 +123,7 @@ from (
 where kart_target.id = tmp.id; --ошибка в логике при первой итерации - у меня все данный больше меты
 
 --5-2. Вставляем обновленную запись новой строкой c макс_датой
-insert into de11an.kart_target( id, val, create_dt, update_dt ) (
+insert into de11an.kart_target( id, val, start_dt, end_dt ) (
 	select 
 		stg.id, 
 		stg.val, 
@@ -157,37 +151,37 @@ select * from de11an.kart_target; ----------------------------------------------
 update de11an.kart_target 
 set 
 	del_fg = 1,
-	update_dt = coalesce( (select max( update_dt ) from de11an.kart_stg), now())  - interval  '1 sec' 
+	end_dt = coalesce( (select max( update_dt ) from de11an.kart_stg), now())  - interval  '1 sec' 
 where 1=1
 	and kart_target.id not in (select id from de11an.kart_stg_del stg)
-	and update_dt = to_timestamp('3000-12-31','YYYY-MM-DD');
+	and end_dt = to_timestamp('3000-12-31','YYYY-MM-DD');
 
 --вар2 - добавление строки
 --"закрытие" записи
 update de11an.kart_target 
 set 
 	--del_fg = 1
-	update_dt =  coalesce( (select max( update_dt ) from de11an.kart_stg), now())  - interval  '1 sec'  
+	end_dt =  coalesce( (select max( update_dt ) from de11an.kart_stg), now())  - interval  '1 sec'  
 where 1=1
 	and kart_target.id not in (select id from de11an.kart_stg_del stg)
-	and update_dt = to_timestamp('3000-12-31','YYYY-MM-DD');
+	and end_dt = to_timestamp('3000-12-31','YYYY-MM-DD');
 
 --добавление строки с закрытым fg:
-insert into de11an.kart_target( id, val, create_dt, update_dt, del_fg) (
+insert into de11an.kart_target( id, val, start_dt, end_dt, del_fg) (
 	select 
 		id, 
 		val, 
-		create_dt, 
+		start_dt, 
 		to_timestamp('3000-12-31','YYYY-MM-DD'),
 		1 
 	FROM de11an.kart_target tgt
 	where 1=1
 		and tgt.id not in (select id from de11an.kart_stg_del stg)
-		and update_dt =  (select max( update_dt ) 
+		and end_dt =  (select max( end_dt ) 
 						from de11an.kart_target
-						where update_dt <> to_timestamp('3000-12-31','YYYY-MM-DD') 
+						where end_dt <> to_timestamp('3000-12-31','YYYY-MM-DD') 
 						)
-);
+	);
 
 -- 7. Обновление метаданных.
 
