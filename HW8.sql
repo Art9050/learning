@@ -94,6 +94,7 @@ select id from de11an.kart_source;
 
 -- 4. Загрузка в приемник "вставок" на источнике (формат SCD1).
 
+/* 
 insert into de11an.kart_target( id, val, create_dt, update_dt )
 select 
 	stg.id, 
@@ -103,12 +104,25 @@ select
 from de11an.kart_stg stg
 left join de11an.kart_target tgt
 on stg.id = tgt.id
-where tgt.id is null;
+where tgt.id is null; 
+*/
 
 сравнивает по ID если нет вставлять, de11an.kart_target.update_dt - ставить макс_дату
 
+insert into de11an.kart_target( id, val, create_dt, update_dt )
+select 
+	stg.id, 
+	stg.val, 
+	stg.update_dt, 
+	to_timestamp('3000-12-31','YYYY-MM-DD')
+from de11an.kart_stg stg
+left join de11an.kart_target tgt
+on stg.id = tgt.id
+where tgt.id is null;
+
 -- 5. Обновление в приемнике "обновлений" на источнике (формат SCD1).
 
+/* 
 update de11an.kart_target
 set 
 	val = tmp.val,
@@ -122,16 +136,58 @@ from (
 	from de11an.kart_stg stg
 	inner join de11an.kart_target tgt
 	on stg.id = tgt.id
-	where stg.val <> tgt.val or ( stg.val is null and tgt.val is not null ) or ( stg.val is not null and tgt.val is null )
+	where 1=0
+		or stg.val <> tgt.val 
+		or ( stg.val is null and tgt.val is not null ) 
+		or ( stg.val is not null and tgt.val is null )
+) tmp
+where kart_target.id = tmp.id;  
+*/
+
+--(1). Обновление записей удовлетворяющих условия. 
+--менять макс_дату на (дату_создания одновления - минимальный интервал) - есть в ДЗ7
+update de11an.kart_target
+set 
+	update_dt = tmp.create_dt - interval  '1 sec' 
+from (
+	select 
+		stg.id, 
+		stg.val, 
+		stg.update_dt, 
+		to_timestamp('3000-12-31','YYYY-MM-DD')
+	from de11an.kart_stg stg
+	inner join de11an.kart_target tgt
+	on stg.id = tgt.id
+	where 1=1
+--		and stg.id = tgt.id 
+		and stg.update_dt > (select 
+								max_update_dt 
+							from de11an.kart_meta
+							)
 ) tmp
 where kart_target.id = tmp.id; 
 
-1. Обновление записей удовлетворяющих условия. менять макс_дату на (дату_создания для следующего одновления - минимальный интервал) - есть в ДЗ7
-2. Вставляем обновленную запись новой строкой
-
+--(2). Вставляем обновленную запись новой строкой c макс_датой
+insert into de11an.kart_target( id, val, create_dt, update_dt ) (
+	select 
+		stg.id, 
+		stg.val, 
+		stg.update_dt, 
+		to_timestamp('3000-12-31','YYYY-MM-DD')
+	from de11an.kart_stg stg
+	inner join de11an.kart_target tgt
+	on stg.id = tgt.id
+	where 1=1
+--		and stg.id = tgt.id 
+		and stg.update_dt > (select 
+								max_update_dt 
+							from de11an.kart_meta
+							)
+);
 
 -- 6. Удаление в приемнике удаленных в источнике записей (формат SCD1).
 
+/* 
 delete from de11an.kart_target
 where id in (
 	select tgt.id
@@ -139,9 +195,34 @@ where id in (
 	left join de11an.kart_stg_del stg
 	on stg.id = tgt.id
 	where stg.id is null
-);
+); */
 
-переписать на обновление флага при отсутствующем ID
+обновление del_fg при отсутствующем ID и ставится дата окончания
+--вар1 изменение fg и "закрытие" записи
+/* 
+update de11an.kart_target 
+set 
+	del_fg = 1
+	update_dt = (select max( update_dt ) from de11an.kart_stg )
+where kart_target.id in (
+	SELECT 
+		id 
+	from de11an.kart_target tg
+	WHERE 1=1
+		and tg.id not in (select id from de11an.kart_stg_del stg)
+		and update_dt = to_timestamp('3000-12-31','YYYY-MM-DD')
+	) lkp */
+	
+update de11an.kart_target 
+set 
+	del_fg = 1
+	update_dt = (select max( update_dt ) from de11an.kart_stg )
+where 1=1
+	and kart_target.id not in (select id from de11an.kart_stg_del stg)
+	and update_dt = to_timestamp('3000-12-31','YYYY-MM-DD')
+
+--вар2 "закрытие" записи, добавление строки с закрытым fg 
+
 
 -- 7. Обновление метаданных.
 
@@ -152,3 +233,7 @@ where schema_name='de11an' and table_name = 'kart_SOURCE';
 -- 8. Фиксация транзакции.
 
 commit;
+
+
+
+отработать условие когда запись удалена но пото появляется такойже айди
