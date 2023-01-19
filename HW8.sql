@@ -4,10 +4,10 @@
 ----------------------------------------------------------------------------
 -- Подготовка данных
 
-truncate table de11an.kart_source;
-truncate table de11an.kart_stg;
-truncate table de11an.kart_target;
-truncate table de11an.kart_meta;
+--truncate table de11an.kart_source;
+--truncate table de11an.kart_stg;
+--truncate table de11an.kart_target;
+--truncate table de11an.kart_meta;
 
 -- добавление
 insert into de11an.kart_source ( id, val, update_dt ) values ( 1, 'A', now() );
@@ -48,7 +48,7 @@ create table de11an.kart_stg(
 --	update_dt timestamp(0)
 --);
 
-create table de11an.kart_target1 ( 
+create table de11an.kart_target ( 
  id integer, 
  val varchar(50), 
  create_dt timestamp(0), 
@@ -103,11 +103,12 @@ left join de11an.kart_target tgt
 on stg.id = tgt.id
 where tgt.id is null;
 
+
 -- 5. Обновление в приемнике "обновлений" на источнике (формат SCD1).
 --5-1. Обновление записей удовлетворяющих условия. 
 update de11an.kart_target
 set 
-	update_dt = tmp.create_dt - interval  '1 sec' 
+	update_dt = tmp.update_dt - interval  '1 sec' 
 from (
 	select 
 		stg.id, 
@@ -123,8 +124,12 @@ from (
 								max_update_dt 
 							from de11an.kart_meta
 							)
+		and to_timestamp('1900-01-01','YYYY-MM-DD') <> (select 
+								max_update_dt 
+							from de11an.kart_meta
+							) --отсекает первую итерацию
 ) tmp
-where kart_target.id = tmp.id; 
+where kart_target.id = tmp.id; --ошибка в логике при первой итерации - у меня все данный больше меты
 
 --5-2. Вставляем обновленную запись новой строкой c макс_датой
 insert into de11an.kart_target( id, val, create_dt, update_dt ) (
@@ -142,7 +147,7 @@ insert into de11an.kart_target( id, val, create_dt, update_dt ) (
 								max_update_dt 
 							from de11an.kart_meta
 							)
-);
+);--ошибка в логике при первой итерации - у меня все данный больше меты
 
 -- 6. Удаление в приемнике удаленных в источнике записей (формат SCD1).
 --вар1 изменение fg при отсутствующем ID и "закрытие" записи
@@ -203,5 +208,5 @@ commit;
 
 
 
-отработать условие когда запись удалена но пото появляется такойже айди
+отработать условие когда запись удалена но пото появляется такой же айди
 Т.к. SCD2, то уже не update_dt, а start_dt и end_dt, 
