@@ -825,6 +825,64 @@ conn.commit()
 # В простейшем варианте допустимо использовать «хардкод» для задания дня отчета.
 
 
+#-- Обновление метаданных.
+cursor.execute( """	
+	update de11an.kart_meta_all
+	set max_update_dt = 
+	coalesce(
+	    ( select max( update_dt ) from de11an.kart_stg_cards ),
+	    ( select max_update_dt from de11an.kart_meta_all
+	      where schema_name='de11an' and table_name='kart_stg_cards' )   
+	)
+	where schema_name='de11an' and table_name = 'kart_stg_cards';
+	
+	update de11an.kart_meta_all
+	set max_update_dt = 
+	coalesce(
+	    ( select max( update_dt ) from de11an.kart_stg_terminals ),
+	    ( select max_update_dt from de11an.kart_meta_all
+	      where schema_name='de11an' and table_name='kart_stg_terminals' )   
+	)
+	where schema_name='de11an' and table_name = 'kart_stg_terminals';
+	
+	update de11an.kart_meta_all
+	set max_update_dt = 
+	coalesce(
+	    ( select max( update_dt ) from de11an.kart_stg_transactions ),
+	    ( select max_update_dt from de11an.kart_meta_all
+	      where schema_name='de11an' and table_name='kart_stg_transactions' )   
+	)
+	where schema_name='de11an' and table_name = 'kart_stg_transactions';
+	
+	update de11an.kart_meta_all
+	set max_update_dt = 
+	coalesce(
+	    ( select max( update_dt ) from de11an.kart_stg_accounts ),
+	    ( select max_update_dt from de11an.kart_meta_all
+	      where schema_name='de11an' and table_name='kart_stg_accounts' )   
+	)
+	where schema_name='de11an' and table_name = 'kart_stg_accounts';
+	
+	update de11an.kart_meta_all
+	set max_update_dt = 
+	coalesce(
+	    ( select max( update_dt ) from de11an.kart_stg_clients ),
+	    ( select max_update_dt from de11an.kart_meta_all
+	      where schema_name='de11an' and table_name='kart_stg_clients' )   
+	)
+	where schema_name='de11an' and table_name = 'kart_stg_clients';
+	
+	update de11an.kart_meta_all
+	set max_update_dt = 
+	coalesce(
+	    ( select max( update_dt ) from de11an.kart_stg_blacklist ),
+	    ( select max_update_dt from de11an.kart_meta_all
+	      where schema_name='de11an' and table_name='kart_stg_kart_stg_blacklistclients' )   
+	)
+	where schema_name='de11an' and table_name = 'kart_stg_blacklist';
+""")
+
+
 conn_b.commit()
 conn.commit()
 cursor_b.close()
