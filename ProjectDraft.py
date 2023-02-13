@@ -779,12 +779,43 @@ cursor.execute( """
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_fact_passport_blacklist. 
 # Напоминаем, что в фактовые таблицы данные перекладываются «простым инсертом», то есть необходимо выполнить один INSERT INTO … SELECT …
-
+cursor.execute( """	
+	insert into  de11an.kart_DWH_FACT_passport_blacklist (
+		passport_num,
+		entry_dt 
+		)
+	select 
+		passport_num,
+		entry_dt
+	from de11an.kart_stg_blacklist;
+""")
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_fact_transactions. 
 # Напоминаем, что в фактовые таблицы данные перекладываются «простым инсертом», то есть необходимо выполнить один INSERT INTO … SELECT …
+cursor.execute( """	
+	insert into de11an.kart_dwh_fact_trasactions (
+		trans_id,
+		trans_date,
+		card_num,
+		open_type,
+		amt,
+		open_result,
+		terminal,
+		update_dt
+	)
+	select 
+		trans_id,
+		trans_date,
+		card_num,
+		open_type,
+		amt,
+		open_result,
+		terminal,
+		update_dt
+	 from de11an.kart_stg_transactions;
+""")
 
-
+conn.commit()
 
 # • Напишите скрипт, соединяющий нужные таблицы для поиска операций, совершенных при недействующем договоре 
 # (это самый простой случай мошенничества). Отладьте ваш скрипт для одной даты в DBeaver, он должен выдавать результат. 
