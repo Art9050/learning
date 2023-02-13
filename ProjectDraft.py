@@ -70,20 +70,25 @@ for f in os.listdir(FILES_PREFIX):
     if file_dt > last_date:
         file = f
         break
-df = pd.read_csv(f'{FILES_PREFIX}/{file}')
+df = pd.read_csv(f'{FILES_PREFIX}/{file}', sep=';')
 df['update_dt'] = file_dt.strftime('%Y-%m-%d')
-df = df[['trans_id', 'trans_date', 'card_num', 'open_type', 'amt', 'open_result', 'terminal', 'update_dt']]
+df = df[['transaction_id', 'transaction_date', 'amount', 'card_num', 'oper_type', 'oper_result', 'terminal', 'update_dt']]
 
-cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals(
-                                terminal_id,
-                                terminal_type,
-                                terminal_city,
-                                terminal_address,
+# IMPROVEMENT: Преобразование типа можно вынести в DF. Не понял как. Есть пробелы? Замена ',' не помогла
+# df['amount'].apply(lambda x: str(x).replace(",", ".")).astype('decimal')
+# df.dtypes
+# df = pd.read_csv(f'{FILES_PREFIX}/{file}', sep=';', , decimal=",")
+
+cursor.executemany( """ INSERT INTO de11an.kart_stg_transactions (
+                                trans_id,
+                                trans_date,
+                                amt, 
+                                card_num, 
+                                oper_type, 
+                                oper_result, 
+                                terminal, 
                                 update_dt 
-                            ) VALUES( %s, %s, %s, %s, %s ) """, df.values.tolist() )
-cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals_del(
-                                terminal_id
-                            ) VALUES( %s ) """, map(lambda x: [x], df['terminal_id'].values.tolist()) )
+                            ) VALUES( %s, %s, %s, %s, %s, %s, %s, %s ) """, df.values.tolist() )
 
 # Загрузите файл terminals_01032021.xlsx в стейджинг аналогично предыдущему пункту.
 
