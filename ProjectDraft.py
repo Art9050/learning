@@ -485,7 +485,126 @@ cursor.execute( """
 """)
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_accounts. Используйте код из предыдущего пункта.
-
+# --Загрузка в приемник "вставок" на источнике (формат SCD2).
+cursor.execute( """
+	insert into de11an.kart_dwh_dim_accounts_hist(
+		account_num ,
+		valid_to ,
+		client ,
+		effective_from ,
+	    effective_to ,
+	    deleted_flg 
+		)
+	select 
+		stg.account_num ,
+		stg.valid_to ,
+		stg.client ,
+		stg.create_dt ,
+		to_date( '9999-12-31', 'YYYY-MM-DD' ),
+		FALSE
+	from de11an.kart_stg_accounts stg
+	left join de11an.kart_dwh_dim_accounts_hist dim
+		on stg.account_num = dim.account_num
+			and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and dim.deleted_flg = FALSE
+	where dim.account_num is null;
+""")
+# --Обновление в приемнике "обновлений" на источнике (формат SCD2).
+cursor.execute( """
+	update de11an.kart_dwh_dim_accounts_hist
+	set
+		effective_to = tmp.update_dt  - interval '1 second'
+	from (
+		select 
+			stg.account_num ,
+			stg.update_dt
+		from de11an.kart_stg_accounts stg
+		inner join de11an.kart_dwh_dim_accounts_hist dim
+			on stg.account_num = dim.account_num
+				and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+				and dim.deleted_flg = FALSE
+		where 1=0
+			or stg.valid_to <> dim.valid_to or ( stg.valid_to is null and dim.valid_to is not null ) or ( stg.valid_to is not null and dim.valid_to is null )
+			or stg.client <> dim.client or ( stg.client is null and dim.client is not null ) or ( stg.client is not null and dim.client is null )
+		) tmp
+	where de11an.kart_dwh_dim_accounts_hist.account_num = tmp.account_num; 
+""")
+cursor.execute( """
+	insert into de11an.kart_dwh_dim_accounts_hist(
+		account_num ,
+		valid_to ,
+		client ,
+		effective_from ,
+	    effective_to ,
+	    deleted_flg 
+		)
+		select 
+			stg.account_num ,
+			stg.valid_to ,
+			stg.client ,
+			stg.create_dt ,
+			to_date( '9999-12-31', 'YYYY-MM-DD' ),
+			FALSE
+		from de11an.kart_stg_accounts stg
+		inner join de11an.kart_dwh_dim_accounts_hist dim
+			on stg.account_num = dim.account_num
+			and dim.effective_to = stg.update_dt  - interval '1 second'
+			and dim.deleted_flg = FALSE
+		where 1=0
+			or stg.valid_to <> dim.valid_to or ( stg.valid_to is null and dim.valid_to is not null ) or ( stg.valid_to is not null and dim.valid_to is null )
+			or stg.client <> dim.client or ( stg.client is null and dim.client is not null ) or ( stg.client is not null and dim.client is null )
+		;
+""")	
+# -- Удаление в приемнике удаленных в источнике записей (формат SCD2).
+cursor.execute( """
+insert into de11an.kart_dwh_dim_accounts_hist(
+		account_num ,
+		valid_to ,
+		client ,
+		effective_from ,
+	    effective_to ,
+	    deleted_flg 
+		)
+		select 
+			dim.account_num ,
+			dim.valid_to ,
+			dim.client ,
+			now(),
+			to_date( '9999-12-31', 'YYYY-MM-DD' ),	
+			TRUE	
+		from de11an.kart_dwh_dim_accounts_hist dim
+		where 1=1
+			and dim.account_num in (
+				select dim.account_num
+				from de11an.kart_dwh_dim_accounts_hist dim
+				left join de11an.kart_stg_accounts stg
+				on stg.account_num = dim.account_num
+				where 1=1
+					and stg.account_num is null
+					and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+					and dim.deleted_flg = FALSE
+			)
+			and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and dim.deleted_flg = FALSE;
+""")
+cursor.execute( """
+	update de11an.kart_dwh_dim_accounts_hist
+		set 
+			effective_to = now() - interval '1 second'
+		where 1=1
+			and account_num in (
+				select dim.account_num
+				from de11an.kart_dwh_dim_accounts_hist dim
+				left join de11an.kart_stg_accounts_del stg
+				on stg.account_num = dim.account_num
+				where 1=1
+					and stg.account_num is null
+					and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+					and dim.deleted_flg = FALSE
+			)
+			and de11an.kart_dwh_dim_accounts_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and de11an.kart_dwh_dim_accounts_hist.deleted_flg = FALSE;
+""")
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_clients. Используйте код из предыдущего пункта.
 
