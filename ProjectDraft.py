@@ -346,114 +346,143 @@ cursor.execute( """
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
 
-	# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
-	# --Загрузка в приемник "вставок" на источнике (формат SCD2).
+# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. 
+# --Загрузка в приемник "вставок" на источнике (формат SCD2).
+cursor.execute( """
 	insert into de11an.kart_dwh_dim_cards_hist(
 		card_num ,
 		account_num ,
 		effective_from ,
-	    effective_to ,
-	    deleted_flg 
-	    )
+		effective_to ,
+		deleted_flg 
+		)
 	select 
 		stg.card_num ,
 		stg.account_num ,
 		stg.create_dt ,
-	    to_date( '9999-12-31', 'YYYY-MM-DD' ),
-	    FALSE
+		to_date( '9999-12-31', 'YYYY-MM-DD' ),
+		FALSE
 	from de11an.kart_stg_cards stg
 	left join de11an.kart_dwh_dim_cards_hist dim
 		on stg.card_num = dim.card_num
 			and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
-	    	and dim.deleted_flg = FALSE
+			and dim.deleted_flg = FALSE
 	where dim.card_num is null;
-	
-	# --Обновление в приемнике "обновлений" на источнике (формат SCD2).
-	
+""")
+
+# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
+# --Загрузка в приемник "вставок" на источнике (формат SCD2).
+cursor.execute( """
+	insert into de11an.kart_dwh_dim_cards_hist(
+		card_num ,
+		account_num ,
+		effective_from ,
+		effective_to ,
+		deleted_flg 
+		)
+	select 
+		stg.card_num ,
+		stg.account_num ,
+		stg.create_dt ,
+		to_date( '9999-12-31', 'YYYY-MM-DD' ),
+		FALSE
+	from de11an.kart_stg_cards stg
+	left join de11an.kart_dwh_dim_cards_hist dim
+		on stg.card_num = dim.card_num
+			and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and dim.deleted_flg = FALSE
+	where dim.card_num is null;
+""")
+# --Обновление в приемнике "обновлений" на источнике (формат SCD2).
+cursor.execute( """
 	update de11an.kart_dwh_dim_cards_hist
 	set
-	    effective_to = tmp.update_dt  - interval '1 second'
+		effective_to = tmp.update_dt  - interval '1 second'
 	from (
 		select 
 			stg.card_num ,
 			stg.update_dt
 		from de11an.kart_stg_cards stg
 		inner join de11an.kart_dwh_dim_cards_hist dim
-	        on stg.card_num = dim.card_num
+			on stg.card_num = dim.card_num
 				and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
-		    	and dim.deleted_flg = FALSE
-	    where 1=0
-	        or stg.account_num <> dim.account_num or ( stg.account_num is null and dim.account_num is not null ) or ( stg.account_num is not null and dim.account_num is null )
+				and dim.deleted_flg = FALSE
+		where 1=0
+			or stg.account_num <> dim.account_num or ( stg.account_num is null and dim.account_num is not null ) or ( stg.account_num is not null and dim.account_num is null )
 	) tmp
 	where de11an.kart_dwh_dim_cards_hist.card_num = tmp.card_num; 
-	
-	 insert into de11an.kart_dwh_dim_cards_hist(
+""")
+cursor.execute( """
+	insert into de11an.kart_dwh_dim_cards_hist(
 		card_num ,
 		account_num ,
 		effective_from ,
-	    effective_to ,
-	    deleted_flg 
-	    )
-	    select 
+		effective_to ,
+		deleted_flg 
+		)
+		select 
 			stg.card_num ,
 			stg.account_num ,
 			stg.create_dt ,
-		    to_date( '9999-12-31', 'YYYY-MM-DD' ),
-		    FALSE
+			to_date( '9999-12-31', 'YYYY-MM-DD' ),
+			FALSE
 		from de11an.kart_stg_cards stg
-	    inner join de11an.kart_dwh_dim_cards_hist dim
-	        on stg.card_num = dim.card_num
-	        and dim.effective_to = stg.update_dt  - interval '1 second'
-	        and dim.deleted_flg = FALSE
-	    where 1=0
-	        or stg.account_num <> dim.account_num or ( stg.account_num is null and dim.account_num is not null ) or ( stg.account_num is not null and dim.account_num is null )
-	    ;
-	# -- Удаление в приемнике удаленных в источнике записей (формат SCD2).
-	
-	 insert into de11an.kart_dwh_dim_cards_hist(
+		inner join de11an.kart_dwh_dim_cards_hist dim
+			on stg.card_num = dim.card_num
+			and dim.effective_to = stg.update_dt  - interval '1 second'
+			and dim.deleted_flg = FALSE
+		where 1=0
+			or stg.account_num <> dim.account_num or ( stg.account_num is null and dim.account_num is not null ) or ( stg.account_num is not null and dim.account_num is null )
+		;
+""")
+# -- Удаление в приемнике удаленных в источнике записей (формат SCD2).
+cursor.execute( """
+	insert into de11an.kart_dwh_dim_cards_hist(
 		card_num ,
 		account_num ,
 		effective_from ,
-	    effective_to ,
-	    deleted_flg 
-	    )
-	    select 
+		effective_to ,
+		deleted_flg 
+		)
+		select 
 			dim.card_num ,
 			dim.account_num ,
-	        now(),
-	        to_date( '9999-12-31', 'YYYY-MM-DD' ),	
-	        TRUE	
+			now(),
+			to_date( '9999-12-31', 'YYYY-MM-DD' ),	
+			TRUE	
 		from de11an.kart_dwh_dim_cards_hist dim
-	    where 1=1
-	        and dim.card_num in (
-	            select dim.card_num
-	            from de11an.kart_dwh_dim_cards_hist dim
-	            left join de11an.kart_stg_cards_del stg
-	            on stg.card_num = dim.card_num
-	            where 1=1
-	                and stg.card_num is null
-	                and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
-	                and dim.deleted_flg = FALSE
-	        )
-	        and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
-	        and dim.deleted_flg = FALSE;
-	
+		where 1=1
+			and dim.card_num in (
+				select dim.card_num
+				from de11an.kart_dwh_dim_cards_hist dim
+				left join de11an.kart_stg_cards_del stg
+				on stg.card_num = dim.card_num
+				where 1=1
+					and stg.card_num is null
+					and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+					and dim.deleted_flg = FALSE
+			)
+			and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and dim.deleted_flg = FALSE;
+""")
+cursor.execute( """
 	update de11an.kart_dwh_dim_cards_hist
 	set 
-	    effective_to = now() - interval '1 second'
+		effective_to = now() - interval '1 second'
 	where 1=1
-	    and card_num in (
-	        select dim.card_num
-	        from de11an.kart_dwh_dim_cards_hist dim
-	        left join de11an.kart_stg_cards_del stg
-	        on stg.card_num = dim.card_num
-	        where 1=1
-	            and stg.card_num is null
-	            and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
-	            and dim.deleted_flg = FALSE
-	    )
-	    and de11an.kart_dwh_dim_cards_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
-	    and de11an.kart_dwh_dim_cards_hist.deleted_flg = FALSE;
+		and card_num in (
+			select dim.card_num
+			from de11an.kart_dwh_dim_cards_hist dim
+			left join de11an.kart_stg_cards_del stg
+			on stg.card_num = dim.card_num
+			where 1=1
+				and stg.card_num is null
+				and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+				and dim.deleted_flg = FALSE
+		)
+		and de11an.kart_dwh_dim_cards_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+		and de11an.kart_dwh_dim_cards_hist.deleted_flg = FALSE;
+""")
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_accounts. Используйте код из предыдущего пункта.
 
