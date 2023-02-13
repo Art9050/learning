@@ -168,7 +168,7 @@ names = [ x[0] for x in cursor_b.description ]
 df = pd.DataFrame( records, columns = names ) 
 
 cursor.executemany( """INSERT INTO de11an.kart_stg_clients (client_id, last_name, first_name, 
-    patrinymic, date_of_birth, passport_num, passport_valid_to, phone, create_dt, update_dt) 
+    patronymic, date_of_birth, passport_num, passport_valid_to, phone, create_dt, update_dt) 
     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", df.values.tolist())
 
 conn.commit()
