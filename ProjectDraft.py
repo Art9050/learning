@@ -615,7 +615,167 @@ cursor.execute( """
 """)
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_clients. Используйте код из предыдущего пункта.
-
+# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_clients
+# --Загрузка в приемник "вставок" на источнике (формат SCD2).
+cursor.execute( """
+	insert into  de11an.kart_dwh_dim_clients_hist(
+		client_id,
+		last_name,
+		first_name,
+		patronymic, 
+		date_of_birth,
+		passport_num,
+		passport_valid_to,
+		phone,
+		effective_from ,
+	    effective_to ,
+	    deleted_flg 
+	)
+	select 
+		stg.client_id ,
+		stg.last_name ,
+		stg.first_name ,
+		stg.patronymic ,
+		stg.date_of_birth ,
+		stg.passport_num ,
+		stg.passport_valid_to ,
+		stg.phone ,
+		stg.create_dt ,
+		to_date( '9999-12-31', 'YYYY-MM-DD' ),
+		FALSE
+	from de11an.kart_stg_clients stg
+	left join  de11an.kart_dwh_dim_clients_hist dim
+		on stg.client_id = dim.client_id
+			and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and dim.deleted_flg = FALSE
+	where dim.client_id is null;
+""")
+# --Обновление в приемнике "обновлений" на источнике (формат SCD2).
+cursor.execute( """
+	update de11an.kart_dwh_dim_clients_hist
+	set
+		effective_to = tmp.update_dt  - interval '1 second'
+	from (
+		select 
+			stg.client_id ,
+			stg.update_dt
+		from de11an.kart_stg_clients stg
+		inner join  de11an.kart_dwh_dim_clients_hist dim
+			on stg.client_id = dim.client_id
+				and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+				and dim.deleted_flg = FALSE
+		where 1=0
+			or stg.last_name <> dim.last_name or ( stg.last_name is null and dim.last_name is not null ) or ( stg.last_name is not null and dim.last_name is null )
+			or stg.first_name <> dim.first_name or ( stg.first_name is null and dim.first_name is not null ) or ( stg.first_name is not null and dim.first_name is null )
+			or stg.patronymic <> dim.patronymic or ( stg.patronymic is null and dim.patronymic is not null ) or ( stg.patronymic is not null and dim.patronymic is null )
+			or stg.date_of_birth <> dim.date_of_birth or ( stg.date_of_birth is null and dim.date_of_birth is not null ) or ( stg.date_of_birth is not null and dim.date_of_birth is null )
+			or stg.passport_num <> dim.passport_num or ( stg.passport_num is null and dim.passport_num is not null ) or ( stg.passport_num is not null and dim.passport_num is null )
+			or stg.passport_valid_to <> dim.passport_valid_to or ( stg.passport_valid_to is null and dim.passport_valid_to is not null ) or ( stg.passport_valid_to is not null and dim.passport_valid_to is null )
+			or stg.phone <> dim.phone or ( stg.phone is null and dim.phone is not null ) or ( stg.phone is not null and dim.phone is null )
+		) tmp
+	where de11an.kart_dwh_dim_clients_hist.client_id = tmp.client_id; 
+""")
+cursor.execute( """
+	insert into de11an.kart_dwh_dim_clients_hist(
+			client_id,
+			last_name,
+			first_name,
+			patronymic, 
+			date_of_birth,
+			passport_num,
+			passport_valid_to,
+			phone,
+			effective_from ,
+		    effective_to ,
+		    deleted_flg 
+		)
+		select 
+			stg.client_id ,
+			stg.last_name ,
+			stg.first_name ,
+			stg.patronymic ,
+			stg.date_of_birth ,
+			stg.passport_num ,
+			stg.passport_valid_to ,
+			stg.phone ,
+			stg.create_dt ,
+			to_date( '9999-12-31', 'YYYY-MM-DD' ),
+			FALSE
+		from de11an.kart_stg_clients stg
+		inner join de11an.kart_dwh_dim_clients_hist dim
+			on stg.client_id = dim.client_id
+			and dim.effective_to = stg.update_dt  - interval '1 second'
+			and dim.deleted_flg = FALSE
+		where 1=0
+			or stg.last_name <> dim.last_name or ( stg.last_name is null and dim.last_name is not null ) or ( stg.last_name is not null and dim.last_name is null )
+			or stg.first_name <> dim.first_name or ( stg.first_name is null and dim.first_name is not null ) or ( stg.first_name is not null and dim.first_name is null )
+			or stg.patronymic <> dim.patronymic or ( stg.patronymic is null and dim.patronymic is not null ) or ( stg.patronymic is not null and dim.patronymic is null )
+			or stg.date_of_birth <> dim.date_of_birth or ( stg.date_of_birth is null and dim.date_of_birth is not null ) or ( stg.date_of_birth is not null and dim.date_of_birth is null )
+			or stg.passport_num <> dim.passport_num or ( stg.passport_num is null and dim.passport_num is not null ) or ( stg.passport_num is not null and dim.passport_num is null )
+			or stg.passport_valid_to <> dim.passport_valid_to or ( stg.passport_valid_to is null and dim.passport_valid_to is not null ) or ( stg.passport_valid_to is not null and dim.passport_valid_to is null )
+			or stg.phone <> dim.phone or ( stg.phone is null and dim.phone is not null ) or ( stg.phone is not null and dim.phone is null )
+		;
+""")
+# -- Удаление в приемнике удаленных в источнике записей (формат SCD2).
+cursor.execute( """	
+	insert into de11an.kart_dwh_dim_clients_hist(
+			client_id,
+			last_name,
+			first_name,
+			patronymic, 
+			date_of_birth,
+			passport_num,
+			passport_valid_to,
+			phone,
+			effective_from ,
+		    effective_to ,
+		    deleted_flg 
+		)
+		select 
+			client_id,
+			last_name,
+			first_name,
+			patronymic, 
+			date_of_birth,
+			passport_num,
+			passport_valid_to,
+			phone,
+			now(),
+			to_date( '9999-12-31', 'YYYY-MM-DD' ),	
+			TRUE	
+		from de11an.kart_dwh_dim_clients_hist dim
+		where 1=1
+			and dim.client_id in (
+				select dim.client_id
+				from de11an.kart_dwh_dim_clients_hist dim
+				left join de11an.kart_stg_clients stg
+				on stg.client_id = dim.client_id
+				where 1=1
+					and stg.client_id is null
+					and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+					and dim.deleted_flg = FALSE
+			)
+			and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and dim.deleted_flg = FALSE;	
+""")
+cursor.execute( """		
+	update de11an.kart_dwh_dim_clients_hist
+		set 
+			effective_to = now() - interval '1 second'
+		where 1=1
+			and client_id in (
+				select dim.client_id
+				from de11an.kart_dwh_dim_clients_hist dim
+				left join de11an.kart_stg_clients_del stg
+				on stg.client_id = dim.client_id
+				where 1=1
+					and stg.client_id is null
+					and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+					and dim.deleted_flg = FALSE
+			)
+			and de11an.kart_dwh_dim_clients_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+			and de11an.kart_dwh_dim_clients_hist.deleted_flg = FALSE;		
+""")
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_fact_passport_blacklist. 
 # Напоминаем, что в фактовые таблицы данные перекладываются «простым инсертом», то есть необходимо выполнить один INSERT INTO … SELECT …
