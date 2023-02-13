@@ -203,13 +203,10 @@ conn.commit()
 cursor.execute( """
     insert into de11an.kart_stg_terminals_del( terminal_id )
         select terminal_id from de11an.kart_stg_terminals;
-
     insert into de11an.kart_stg_cards_del( card_num )
         select card_num from de11an.kart_stg_cards;
-
     insert into de11an.kart_stg_accounts_del( account_num )
         select account_num from de11an.kart_stg_accounts;
-
     insert into de11an.kart_stg_clients_del( client_id )
         select client_id from de11an.kart_stg_clients;
 """)
@@ -355,6 +352,7 @@ cursor.execute( """
         and de11an.kart_dim_terminals_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
         and de11an.kart_dim_terminals_hist.deleted_flg = FALSE;
 """)
+conn.commit()
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
@@ -496,7 +494,7 @@ cursor.execute( """
 		and de11an.kart_dwh_dim_cards_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
 		and de11an.kart_dwh_dim_cards_hist.deleted_flg = FALSE;
 """)
-
+conn.commit()
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_accounts. Используйте код из предыдущего пункта.
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
 cursor.execute( """
@@ -618,7 +616,7 @@ cursor.execute( """
 			and de11an.kart_dwh_dim_accounts_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
 			and de11an.kart_dwh_dim_accounts_hist.deleted_flg = FALSE;
 """)
-
+conn.commit()
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_clients. Используйте код из предыдущего пункта.
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_clients
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
@@ -802,9 +800,9 @@ cursor.execute( """
 		trans_id,
 		trans_date,
 		card_num,
-		open_type,
+		oper_type,
 		amt,
-		open_result,
+		oper_result,
 		terminal,
 		update_dt
 	)
@@ -812,9 +810,9 @@ cursor.execute( """
 		trans_id,
 		trans_date,
 		card_num,
-		open_type,
-		amt,
-		open_result,
+		oper_type,
+		CAST ( REPLACE(amt, ',', '.') AS decimal ),
+		oper_result,
 		terminal,
 		update_dt
 	 from de11an.kart_stg_transactions;
@@ -825,17 +823,6 @@ conn.commit()
 # • Напишите скрипт, соединяющий нужные таблицы для поиска операций, совершенных при недействующем договоре 
 # (это самый простой случай мошенничества). Отладьте ваш скрипт для одной даты в DBeaver, он должен выдавать результат. 
 # В простейшем варианте допустимо использовать «хардкод» для задания дня отчета.
-
-
-
-
-
-
-
-
-
-
-
 
 
 conn_b.commit()
