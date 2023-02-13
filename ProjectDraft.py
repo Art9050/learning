@@ -642,12 +642,12 @@ cursor.execute( """
 
 
 
-# conn_b.commit()
-# conn.commit()
-# cursor_b.close()
-# cursor_e.close()
-# conn_b.close()
-# conn.close()
+conn_b.commit()
+conn.commit()
+cursor_b.close()
+cursor.close()
+conn_b.close()
+conn.close()
 # quit()
 
 
