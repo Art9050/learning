@@ -166,7 +166,7 @@ conn.commit()
 # -в cursor_edu дату из меты
 # draft: ("""select * from info.clients where date > %s """, cursor_edu)
 
-cursor_b.execute( """select * from info.clients c limit 50;""" ) #fix: delete limit 50
+cursor_b.execute( """select * from info.clients;""" ) 
 records = cursor_b.fetchall() 
 
 names = [ x[0] for x in cursor_b.description ]
@@ -180,7 +180,7 @@ conn.commit()
 
 # • Загрузите таблицу bank.accounts в стейджинг. Используйте код из предыдущего пункта.
 
-cursor_b.execute( """select * from info.accounts a limit 50;""" ) #fix: delete limit 50
+cursor_b.execute( """select * from info.accounts;""" )
 
 cursor.executemany( """INSERT INTO de11an.kart_stg_accounts 
 (account_num, valid_to, client, create_dt, update_dt) 
@@ -191,7 +191,7 @@ conn.commit()
 
 # • Загрузите таблицу bank.cards в стейджинг. Используйте код из предыдущего пункта.
 
-cursor_b.execute( """select * from info.cards c2 limit 50;""" ) #fix: delete limit 50
+cursor_b.execute( """select * from info.cards;""" ) 
 
 cursor.executemany( """INSERT INTO de11an.kart_stg_cards 
 ( card_num, account_num, create_dt, update_dt) VALUES (%s,%s,%s,%s)"""
