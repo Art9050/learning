@@ -212,6 +212,14 @@ cursor.execute( """
 conn.commit()
 ############################################################################################################################################
 #------INSERT trgt------------------------
+# IMPROVEMENT: следующие 4 сделать кодогенератором по аналогии с циклом:
+# column = str(input())
+# column_name = []
+# column_name = (column.split(', '))
+# for i in column_name:
+#    print('or stg.' + i + ' <> dim.' + i + ' or ( stg.' + i + ' is null and dim.' + i + ' is not null ) or ( stg.' + i + ' is not null and dim.' + i + ' is null )')
+# Вход: 1. список полей stg, 2. список полей dim, 3. имя stg, 4. имя  dim
+
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_terminals (используйте код из SCD1_incremental_load.sql).
 
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
