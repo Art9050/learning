@@ -842,7 +842,7 @@ conn.commit()
 # В простейшем варианте допустимо использовать «хардкод» для задания дня отчета.
 cursor.execute( """
 	insert into de11an.kart_dwh_rep_fraud 
-		(select
+		(select distinct
 			a.trans_date as event_dt,
 			passport_num as passport,
 			fio,
