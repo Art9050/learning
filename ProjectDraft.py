@@ -824,6 +824,38 @@ conn.commit()
 # (это самый простой случай мошенничества). Отладьте ваш скрипт для одной даты в DBeaver, он должен выдавать результат. 
 # В простейшем варианте допустимо использовать «хардкод» для задания дня отчета.
 
+cursor.execute( """
+	select
+		a.trans_date as event_dt,
+		passport_num as passport,
+		fio,
+		phone,
+		2 as event_type,
+		a.trans_date as report_dt
+	--	cast( now() as date) as report_dt
+	from(
+	select 
+	--	*
+	--	count(*)
+	tr.trans_id,
+	tr.trans_date,
+	tr.card_num,
+	card.account_num,
+	valid_to,
+	passport_num,
+	last_name || ' ' || first_name || ' ' || patronymic as fio,
+		phone
+	from de11an.kart_dwh_fact_trasactions tr
+	left join de11an.kart_dwh_dim_cards_hist card
+		on trim(tr.card_num) = trim(card.card_num)
+	left join de11an.kart_dwh_dim_accounts_hist acc
+		on trim(card.account_num) = trim(acc.account_num)
+	left join de11an.kart_dwh_dim_clients_hist cl
+		on acc.client = cl.client_id
+	) as a
+	where trans_date > a.valid_to;
+""")
+conn.commit()
 
 #-- Обновление метаданных.
 cursor.execute( """	
