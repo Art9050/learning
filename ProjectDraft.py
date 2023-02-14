@@ -74,6 +74,11 @@ df = pd.read_csv(f'{FILES_PREFIX}/{file}', sep=';')
 df['update_dt'] = file_dt.strftime('%Y-%m-%d')
 df = df[['transaction_id', 'transaction_date', 'amount', 'card_num', 'oper_type', 'oper_result', 'terminal', 'update_dt']]
 
+shutil.move(
+    f'{FILES_PREFIX}/{file}',
+    f'{PROCESSED_FILES_DIR}/{file}.backup'
+)
+
 # IMPROVEMENT: Преобразование типа можно вынести в DF. Не понял как. Есть пробелы? Замена ',' не помогла
 # df['amount'].apply(lambda x: str(x).replace(",", ".")).astype('decimal')
 # df.dtypes
@@ -113,6 +118,12 @@ for f in os.listdir(FILES_PREFIX): # IMPROVEMENT: если первым боле
 df = pd.read_excel((f'{FILES_PREFIX}/{file}'), sheet_name='terminals', header=0, index_col=None )
 df['update_dt'] = file_dt.strftime('%Y-%m-%d')
 df = df[['terminal_id', 'terminal_type', 'terminal_city', 'terminal_address', 'update_dt']]
+
+shutil.move(
+    f'{FILES_PREFIX}/{file}',
+    f'{PROCESSED_FILES_DIR}/{file}.backup'
+)
+
 cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals(
                                 terminal_id,
                                 terminal_type,
@@ -149,6 +160,11 @@ for f in os.listdir(FILES_PREFIX):
 df = pd.read_excel((f'{FILES_PREFIX}/{file}'), sheet_name='blacklist', header=0, index_col=None )
 df['update_dt'] = file_dt.strftime('%Y-%m-%d')
 df = df[['date', 'passport', 'update_dt']]
+
+shutil.move(
+    f'{FILES_PREFIX}/{file}',
+    f'{PROCESSED_FILES_DIR}/{file}.backup'
+)
 
 # df['parsed_date'] = df[0].apply(lambda x: datetime.strptime(x, '%d.%m.%Y'))
 # не понимаю почему сбой. Вероятно не может обработать названия столбцов. Как исправить?
@@ -383,6 +399,7 @@ cursor.execute( """
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
+# fix: double?
 cursor.execute( """
 	insert into de11an.kart_dwh_dim_cards_hist(
 		card_num ,
@@ -823,7 +840,6 @@ conn.commit()
 # • Напишите скрипт, соединяющий нужные таблицы для поиска операций, совершенных при недействующем договоре 
 # (это самый простой случай мошенничества). Отладьте ваш скрипт для одной даты в DBeaver, он должен выдавать результат. 
 # В простейшем варианте допустимо использовать «хардкод» для задания дня отчета.
-
 cursor.execute( """
 	insert into de11an.kart_dwh_rep_fraud 
 		(select
@@ -836,15 +852,15 @@ cursor.execute( """
 		--	cast( now() as date) as report_dt
 		from(
 		select 
-		--	*
-		--	count(*)
-		tr.trans_id,
-		tr.trans_date,
-		tr.card_num,
-		card.account_num,
-		valid_to,
-		passport_num,
-		last_name || ' ' || first_name || ' ' || patronymic as fio,
+			--	*
+			--	count(*)
+			tr.trans_id,
+			tr.trans_date,
+			tr.card_num,
+			card.account_num,
+			valid_to,
+			passport_num,
+			last_name || ' ' || first_name || ' ' || patronymic as fio,
 			phone
 		from de11an.kart_dwh_fact_trasactions tr
 		left join de11an.kart_dwh_dim_cards_hist card
@@ -916,7 +932,6 @@ cursor.execute( """
 	where schema_name='de11an' and table_name = 'kart_stg_blacklist';
 """)
 
-
 conn_b.commit()
 conn.commit()
 cursor_b.close()
@@ -924,7 +939,6 @@ cursor.close()
 conn_b.close()
 conn.close()
 # quit()
-
 
 # @**Кодогенератор**
 # вход: значения полей списком 	
