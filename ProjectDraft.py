@@ -131,9 +131,9 @@ cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals(
                                 terminal_address,
                                 update_dt 
                             ) VALUES( %s, %s, %s, %s, %s ) """, df.values.tolist() )
-cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals_del(
-                                terminal_id
-                            ) VALUES( %s ) """, map(lambda x: [x], df['terminal_id'].values.tolist()) )
+# cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals_del(
+#                                terminal_id
+#                            ) VALUES( %s ) """, map(lambda x: [x], df['terminal_id'].values.tolist()) )
 
 # • Загрузите файл passport_blacklist_01032021.xlsx в стейджинг аналогично предыдущему пункту.
 
@@ -242,7 +242,7 @@ conn.commit()
 
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
 cursor.execute( """
-    insert into de11an.kart_dim_terminals_hist( 
+    insert into de11an.kart_dwh_dim_terminals_hist( 
         terminal_id, 
         terminal_type, 
         terminal_city, 
@@ -260,7 +260,7 @@ cursor.execute( """
         to_date( '9999-12-31', 'YYYY-MM-DD' ),
         FALSE
     from de11an.kart_stg_terminals stg
-    left join de11an.kart_dim_terminals_hist dim
+    left join de11an.kart_dwh_dim_terminals_hist dim
     on stg.terminal_id = dim.terminal_id
         and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
         and dim.deleted_flg = FALSE
@@ -268,7 +268,7 @@ cursor.execute( """
 """)
 # --Обновление в приемнике "обновлений" на источнике (формат SCD2).
 cursor.execute( """
-    update de11an.kart_dim_terminals_hist
+    update de11an.kart_dwh_dim_terminals_hist
     set
         effective_to = tmp.update_dt  - interval '1 second'
     from (
@@ -276,7 +276,7 @@ cursor.execute( """
             stg.terminal_id, 
             stg.update_dt
         from de11an.kart_stg_terminals stg
-        inner join de11an.kart_dim_terminals_hist dim
+        inner join de11an.kart_dwh_dim_terminals_hist dim
             on stg.terminal_id = dim.terminal_id
                 and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
                 and dim.deleted_flg = FALSE
@@ -285,10 +285,10 @@ cursor.execute( """
             or stg.terminal_city <> dim.terminal_city or ( stg.terminal_city is null and dim.terminal_city is not null ) or ( stg.terminal_city is not null and dim.terminal_city is null )
             or stg.terminal_address <> dim.terminal_address or ( stg.terminal_address is null and dim.terminal_address is not null ) or ( stg.terminal_address is not null and dim.terminal_address is null )		
     ) tmp
-    where de11an.kart_dim_terminals_hist.terminal_id = tmp.terminal_id; 
+    where de11an.kart_dwh_dim_terminals_hist.terminal_id = tmp.terminal_id; 
 """)
 cursor.execute( """
-    insert into de11an.kart_dim_terminals_hist( 
+    insert into de11an.kart_dwh_dim_terminals_hist( 
         terminal_id, 
         terminal_type, 
         terminal_city, 
@@ -306,7 +306,7 @@ cursor.execute( """
         to_date( '9999-12-31', 'YYYY-MM-DD' ),
         FALSE
     from de11an.kart_stg_terminals stg
-    inner join de11an.kart_dim_terminals_hist dim
+    inner join de11an.kart_dwh_dim_terminals_hist dim
     on stg.terminal_id = dim.terminal_id
         and dim.effective_to = stg.update_dt  - interval '1 second'
         and dim.deleted_flg = FALSE
@@ -318,7 +318,7 @@ cursor.execute( """
 """)
 # -- Удаление в приемнике удаленных в источнике записей (формат SCD2).
 cursor.execute( """
-    insert into de11an.kart_dim_terminals_hist( 
+    insert into de11an.kart_dwh_dim_terminals_hist( 
         terminal_id, 
         terminal_type, 
         terminal_city, 
@@ -335,11 +335,11 @@ cursor.execute( """
         now(),
         to_date( '9999-12-31', 'YYYY-MM-DD' ),	
         TRUE	
-    from de11an.kart_dim_terminals_hist dim
+    from de11an.kart_dwh_dim_terminals_hist dim
     where 1=1
         and dim.terminal_id in (
             select dim.terminal_id
-            from de11an.kart_dim_terminals_hist dim
+            from de11an.kart_dwh_dim_terminals_hist dim
             left join de11an.kart_stg_terminals_del stg
             on stg.terminal_id = dim.terminal_id
             where 1=1
@@ -351,13 +351,13 @@ cursor.execute( """
         and dim.deleted_flg = FALSE;	
 """)
 cursor.execute( """
-    update de11an.kart_dim_terminals_hist
+    update de11an.kart_dwh_dim_terminals_hist
     set 
         effective_to = now() - interval '1 second'
     where 1=1
         and terminal_id in (
             select dim.terminal_id
-            from de11an.kart_dim_terminals_hist dim
+            from de11an.kart_dwh_dim_terminals_hist dim
             left join de11an.kart_stg_terminals_del stg
             on stg.terminal_id = dim.terminal_id
             where 1=1
@@ -365,8 +365,8 @@ cursor.execute( """
                 and dim.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
                 and dim.deleted_flg = FALSE
         )
-        and de11an.kart_dim_terminals_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
-        and de11an.kart_dim_terminals_hist.deleted_flg = FALSE;
+        and de11an.kart_dwh_dim_terminals_hist.effective_to = to_date( '9999-12-31', 'YYYY-MM-DD' )
+        and de11an.kart_dwh_dim_terminals_hist.deleted_flg = FALSE;
 """)
 conn.commit()
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
@@ -837,12 +837,49 @@ cursor.execute( """
 
 conn.commit()
 
-# • Напишите скрипт, соединяющий нужные таблицы для поиска операций, совершенных при недействующем договоре 
-# (это самый простой случай мошенничества). Отладьте ваш скрипт для одной даты в DBeaver, он должен выдавать результат. 
-# В простейшем варианте допустимо использовать «хардкод» для задания дня отчета.
+# type1 Совершение операции при просроченном или заблокированном паспорте.
 cursor.execute( """
-	insert into de11an.kart_dwh_rep_fraud 
-		(select distinct
+	insert into de11an.kart_rep_fraud (
+		select distinct
+			a.trans_date as event_dt,
+			passport_num as passport,
+			fio,
+			phone,
+			1 as event_type,
+			a.trans_date as report_dt
+		--	cast( now() as date) as report_dt
+		from(
+			select distinct
+				tr.trans_id,
+				date(tr.trans_date) as trans_date,
+				tr.card_num,
+				last_name || ' ' || first_name || ' ' || patronymic as fio,
+				cl.passport_num,
+				passport_valid_to,
+				phone,
+				date(entry_dt) as entry_dt
+			from de11an.kart_dwh_fact_trasactions tr
+			left join de11an.kart_dwh_dim_cards_hist card
+				on trim(tr.card_num) = trim(card.card_num)
+			left join de11an.kart_dwh_dim_accounts_hist acc
+				on trim(card.account_num) = trim(acc.account_num)
+			left join de11an.kart_dwh_dim_clients_hist cl
+				on trim(acc.client) = trim(cl.client_id)
+			left join de11an.kart_dwh_fact_passport_blacklist bl
+				on trim(cl.passport_num) = trim(bl.passport_num)
+			where 1=0
+				or trans_date > passport_valid_to
+				or trans_date >= entry_dt --- '>=' в день блокировки паспорта и далее
+		) as a
+	);
+""")
+conn.commit()
+
+# type2 Напишите скрипт, соединяющий нужные таблицы для поиска операций, совершенных при недействующем договоре 
+
+cursor.execute( """
+	insert into de11an.kart_rep_fraud (
+		select distinct
 			a.trans_date as event_dt,
 			passport_num as passport,
 			fio,
@@ -852,10 +889,10 @@ cursor.execute( """
 		--	cast( now() as date) as report_dt
 		from(
 		select 
-			--	*
-			--	count(*)
+		--	*
+		--	count(*)
 			tr.trans_id,
-			tr.trans_date,
+			date(tr.trans_date) as trans_date,
 			tr.card_num,
 			card.account_num,
 			valid_to,
@@ -869,11 +906,13 @@ cursor.execute( """
 			on trim(card.account_num) = trim(acc.account_num)
 		left join de11an.kart_dwh_dim_clients_hist cl
 			on acc.client = cl.client_id
+		where trans_date > valid_to	
 		) as a
-		where trans_date > a.valid_to)
-	;
+	);
 """)
 conn.commit()
+
+
 
 #-- Обновление метаданных.
 cursor.execute( """	
