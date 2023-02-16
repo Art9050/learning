@@ -7,24 +7,39 @@ from datetime import datetime
 import pandas as pd
 import psycopg2
 
+from dotenv import load_dotenv
 
+load_dotenv()
+
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
+HOST = os.getenv("HOST")
+PORT = os.getenv("PORT")
+DB_NAME = os.getenv("DB_NAME")
+
+USERNAME_B = os.getenv("USERNAME_B")
+PASSWORD_B = os.getenv("PASSWORD_B")
+HOST_B = os.getenv("HOST_B")
+PORT_B = os.getenv("PORT_B")
+DB_NAME_B = os.getenv("DB_NAME_B")
 
 FILES_PREFIX = '/home/de11an/kart/project/'
 PROCESSED_FILES_DIR = '/home/de11an/kart/project/archive/'
 
-# IMPROVEMENT: пароли в отдельном файлике. Пример есть
-conn_b = psycopg2.connect(database = "bank",
-            host =     "de-edu-db.chronosavant.ru",
-            user =     "bank_etl",
-            password = "bank_etl_password",
-            port =     5432)
+conn_b = psycopg2.connect(
+            database = DB_NAME_B,
+            host =     HOST_B,
+            user =     USERNAME_B,
+            password = PASSWORD_B,
+            port =     PORT_B)
 
 
-conn = psycopg2.connect(database = "edu",
-            host = "de-edu-db.chronosavant.ru",
-            user = "de11an",
-            password = "peregrintook",
-            port = "5432")
+conn = psycopg2.connect(
+            database = DB_NAME,
+            host = HOST,
+            user = USERNAME,
+            password = PASSWORD,
+            port = PORT)
 
 conn_b.autocommit = False
 conn.autocommit = False
@@ -71,6 +86,9 @@ for f in os.listdir(FILES_PREFIX):
     if file_dt > last_date:
         file = f
         break
+if file == None:
+    print('No such file or directory: ', FILES_PREFIX, 'transactions_')
+    quit()
 df = pd.read_csv(f'{FILES_PREFIX}/{file}', sep=';')
 df['update_dt'] = file_dt.strftime('%Y-%m-%d')
 df = df[['transaction_id', 'transaction_date', 'amount', 'card_num', 'oper_type', 'oper_result', 'terminal', 'update_dt']]
@@ -96,7 +114,7 @@ cursor.executemany( """ INSERT INTO de11an.kart_stg_transactions (
                                 update_dt 
                             ) VALUES( %s, %s, %s, %s, %s, %s, %s, %s ) """, df.values.tolist() )
 
-# Загрузите файл terminals_01032021.xlsx в стейджинг аналогично предыдущему пункту.
+# Загрузите файл terminals_*.xlsx в стейджинг аналогично предыдущему пункту.
 
 cursor.execute("""
     select
@@ -108,7 +126,8 @@ last_date = cursor.fetchone()[0]
 
 file = None
 file_dt = None
-for f in os.listdir(FILES_PREFIX): # IMPROVEMENT: если первым более новый - сбой. 
+
+for f in os.listdir(FILES_PREFIX):
     if not f.startswith('terminals_'):
         continue
     _, file_date = f.split('_')
@@ -116,6 +135,9 @@ for f in os.listdir(FILES_PREFIX): # IMPROVEMENT: если первым боле
     if file_dt > last_date:
         file = f
         break
+if file == None:
+    print('No such file or directory: ', FILES_PREFIX, 'terminals_')
+    quit()
 df = pd.read_excel((f'{FILES_PREFIX}/{file}'), sheet_name='terminals', header=0, index_col=None )
 df['update_dt'] = file_dt.strftime('%Y-%m-%d')
 df = df[['terminal_id', 'terminal_type', 'terminal_city', 'terminal_address', 'update_dt']]
@@ -125,6 +147,10 @@ shutil.move(
     f'{PROCESSED_FILES_DIR}/{file}.backup'
 )
 
+shutil.move(
+    f'{FILES_PREFIX}/{file}',
+    f'{PROCESSED_FILES_DIR}/{file}')
+
 cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals(
                                 terminal_id,
                                 terminal_type,
@@ -132,11 +158,7 @@ cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals(
                                 terminal_address,
                                 update_dt 
                             ) VALUES( %s, %s, %s, %s, %s ) """, df.values.tolist() )
-                            
-# cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals_del(
-#                                terminal_id
-#                            ) VALUES( %s ) """, map(lambda x: [x], df['terminal_id'].values.tolist()) )
-
+conn.commit()
 # • Загрузите файл passport_blacklist_01032021.xlsx в стейджинг аналогично предыдущему пункту.
 
 # IMPROVEMENT: фильтр строк по дате в мете. Настроить инкрементальную загрузку
@@ -159,6 +181,9 @@ for f in os.listdir(FILES_PREFIX):
     if file_dt > last_date:
         file = f
         break
+if file == None:
+    print('No such file or directory: ', FILES_PREFIX, 'transactions_')
+    quit()
 df = pd.read_excel((f'{FILES_PREFIX}/{file}'), sheet_name='blacklist', header=0, index_col=None )
 df['update_dt'] = file_dt.strftime('%Y-%m-%d')
 df = df[['date', 'passport', 'update_dt']]
