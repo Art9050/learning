@@ -1,4 +1,3 @@
-###%%writefile final_project.pu
 #!/usr/bin/python3
 
 import os
@@ -7,6 +6,8 @@ from datetime import datetime
 
 import pandas as pd
 import psycopg2
+
+
 
 FILES_PREFIX = '/home/de11an/kart/project/'
 PROCESSED_FILES_DIR = '/home/de11an/kart/project/archive/'
@@ -57,7 +58,7 @@ cursor.execute("""
     where schema_name='de11an' and table_name='kart_stg_transactions'
 """)
 last_date = cursor.fetchone()[0] 
-# IMPROVEMENT: если первым более новый - сбой. Need sort files (50:20 dtd 21.01.2023)
+# IMPROVEMENT: если первым более новый - сбой
 # TECHNICAL REQUIREMENT: Предполагается что в один день приходит по одному такому файлу. Желающие могут придумать, обосновать и 
 # реализовать более технологичные и учитывающие сбои способы обработки (за это будет повышен балл).
 file = None
@@ -107,7 +108,7 @@ last_date = cursor.fetchone()[0]
 
 file = None
 file_dt = None
-for f in os.listdir(FILES_PREFIX): # IMPROVEMENT: если первым более новый - сбой. Need sort files (50:20 dtd 21.01.2023)
+for f in os.listdir(FILES_PREFIX): # IMPROVEMENT: если первым более новый - сбой. 
     if not f.startswith('terminals_'):
         continue
     _, file_date = f.split('_')
@@ -131,6 +132,7 @@ cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals(
                                 terminal_address,
                                 update_dt 
                             ) VALUES( %s, %s, %s, %s, %s ) """, df.values.tolist() )
+                            
 # cursor.executemany( """ INSERT INTO de11an.kart_stg_terminals_del(
 #                                terminal_id
 #                            ) VALUES( %s ) """, map(lambda x: [x], df['terminal_id'].values.tolist()) )
@@ -176,6 +178,7 @@ cursor.executemany( """ INSERT INTO kart_stg_blacklist(
                                 update_dt
                             ) VALUES( %s, %s, %s ) """, df.values.tolist() ) # fix: отсутствует фильтр. дубли
 conn.commit()
+
 # • Загрузите таблицу bank.clients в стейджинг. Используйте следующий подход: 
 
 # IMPROVEMENT: инкрементальную загрузку сделать:
@@ -205,7 +208,7 @@ cursor.executemany( """INSERT INTO de11an.kart_stg_accounts
 
 conn.commit()
 
-# • Загрузите таблицу bank.cards в стейджинг. Используйте код из предыдущего пункта.
+# • Загрузите таблицу bank.cards в стейджинг.
 
 cursor_b.execute( """select * from info.cards;""" ) 
 
@@ -214,6 +217,7 @@ cursor.executemany( """INSERT INTO de11an.kart_stg_cards
     , cursor_b.fetchall() )
 
 conn.commit()
+
 ############################################################################################################################################
 #------INSERT stg del------------------------
 cursor.execute( """
@@ -369,8 +373,8 @@ cursor.execute( """
         and de11an.kart_dwh_dim_terminals_hist.deleted_flg = FALSE;
 """)
 conn.commit()
-# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
-# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. Используйте код из предыдущего пункта.
+# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards.
+
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
 
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_cards. 
@@ -634,7 +638,7 @@ cursor.execute( """
 			and de11an.kart_dwh_dim_accounts_hist.deleted_flg = FALSE;
 """)
 conn.commit()
-# • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_clients. Используйте код из предыдущего пункта.
+
 # • Загрузите данные из стейджинга в целевую таблицу xxxx_dwh_dim_clients
 # --Загрузка в приемник "вставок" на источнике (формат SCD2).
 cursor.execute( """
@@ -840,24 +844,23 @@ conn.commit()
 # type1 Совершение операции при просроченном или заблокированном паспорте.
 cursor.execute( """
 	insert into de11an.kart_rep_fraud (
-		select distinct
+		select 
 			a.trans_date as event_dt,
 			passport_num as passport,
 			fio,
 			phone,
 			1 as event_type,
-			a.trans_date as report_dt
-		--	cast( now() as date) as report_dt
+			date(a.trans_date) as report_dt
 		from(
-			select distinct
+			select distinct 
 				tr.trans_id,
-				date(tr.trans_date) as trans_date,
+				tr.trans_date as trans_date,
 				tr.card_num,
 				last_name || ' ' || first_name || ' ' || patronymic as fio,
 				cl.passport_num,
 				passport_valid_to,
 				phone,
-				date(entry_dt) as entry_dt
+				entry_dt as entry_dt
 			from de11an.kart_dwh_fact_trasactions tr
 			left join de11an.kart_dwh_dim_cards_hist card
 				on trim(tr.card_num) = trim(card.card_num)
@@ -868,9 +871,10 @@ cursor.execute( """
 			left join de11an.kart_dwh_fact_passport_blacklist bl
 				on trim(cl.passport_num) = trim(bl.passport_num)
 			where 1=0
-				or trans_date > passport_valid_to
-				or trans_date >= entry_dt --- '>=' в день блокировки паспорта и далее
-		) as a
+				or date(trans_date) > date(passport_valid_to)
+				or date(trans_date) >= date(entry_dt) --- '>=' в день блокировки паспорта и далее
+			) as a
+        where date(a.trans_date) > (select max(max_update_dt) from de11an.kart_meta_all) -- фильтр - только записи текущего дня
 	);
 """)
 conn.commit()
@@ -879,20 +883,17 @@ conn.commit()
 
 cursor.execute( """
 	insert into de11an.kart_rep_fraud (
-		select distinct
+		select
 			a.trans_date as event_dt,
 			passport_num as passport,
 			fio,
 			phone,
 			2 as event_type,
-			a.trans_date as report_dt
-		--	cast( now() as date) as report_dt
+			date(a.trans_date) as report_dt
 		from(
-		select 
-		--	*
-		--	count(*)
+		select distinct 
 			tr.trans_id,
-			date(tr.trans_date) as trans_date,
+			tr.trans_date as trans_date,
 			tr.card_num,
 			card.account_num,
 			valid_to,
@@ -906,14 +907,103 @@ cursor.execute( """
 			on trim(card.account_num) = trim(acc.account_num)
 		left join de11an.kart_dwh_dim_clients_hist cl
 			on acc.client = cl.client_id
-		where trans_date > valid_to	
+		where date(trans_date) > valid_to	
 		) as a
+        where date(a.trans_date) > (select max(max_update_dt) from de11an.kart_meta_all) -- фильтр - только записи текущего дня
 	);
 """)
 conn.commit()
 
+# type3 Совершение операций в разных городах в течение одного часа.
+cursor.execute( """
+	insert into de11an.kart_rep_fraud (
+		with diferent_city as(
+			select
+				tr.trans_id,
+				tr.trans_date,
+				LAG(tr.trans_date) OVER(PARTITION BY tr.card_num ORDER BY tr.trans_date) AS lag_trans_date,
+				tr.card_num,
+				terminal,
+				terminal_city,
+				LAG(terminal_city) OVER(PARTITION BY tr.card_num ORDER BY tr.trans_date) AS lag_city,
+				last_name || ' ' || first_name || ' ' || patronymic as fio,
+				cl.passport_num,
+				phone
+			from de11an.kart_dwh_fact_trasactions tr
+			left join de11an.kart_dwh_dim_cards_hist card
+				on trim(tr.card_num) = trim(card.card_num)
+			left join de11an.kart_dwh_dim_accounts_hist acc
+				on trim(card.account_num) = trim(acc.account_num)
+			left join de11an.kart_dwh_dim_clients_hist cl
+				on trim(acc.client) = trim(cl.client_id)
+			left join de11an.kart_dwh_dim_terminals_hist ter
+				on tr.terminal = terminal_id
+		)
+		select 
+			trans_date as event_dt,
+			passport_num as passport,
+			fio,
+			phone,
+			3 as event_type,
+			date(trans_date) as report_dt
+		from diferent_city
+		where 1=1
+			and lag_trans_date is not null
+			and terminal_city <> lag_city
+			and (trans_date - lag_trans_date) < time '01:00'
+			and date(trans_date) > (select date(max(max_update_dt)) from de11an.kart_meta_all); -- фильтр - только записи текущего дня
+	);
+""")
+conn.commit()
 
+# type4 Попытка подбора суммы. 
+# В течение 20 минут проходит более 3х операций со следующим шаблоном – каждая последующая меньше предыдущей, при этом 
+# отклонены все кроме последней. Последняя операция (успешная) в такой цепочке считается мошеннической.
 
+cursor.execute( """
+	insert into de11an.kart_rep_fraud (
+		select 
+			tr.trans_date as event_dt,
+			cl.passport_num as passport,
+			last_name || ' ' || first_name || ' ' || patronymic as fio,
+			phone,
+			4 as event_type,
+			date(tr.trans_date) as report_dt
+		from(
+			select 
+				trans_id,
+				LAG(trans_date, 3) OVER(PARTITION BY card_num ORDER BY trans_date) AS lag3_trans_date,	
+				trans_date,
+				card_num,
+				LAG(amt, 3) OVER(PARTITION BY card_num ORDER BY trans_date) AS lag3_amt,
+				LAG(amt, 2) OVER(PARTITION BY card_num ORDER BY trans_date) AS lag2_amt,
+				LAG(amt) OVER(PARTITION BY card_num ORDER BY trans_date) AS lag1_amt,
+				amt,
+				LAG(oper_result, 3) OVER(PARTITION BY card_num ORDER BY trans_date) AS lag3_oper_result,
+				LAG(oper_result, 2) OVER(PARTITION BY card_num ORDER BY trans_date) AS lag2_oper_result,
+				LAG(oper_result) OVER(PARTITION BY card_num ORDER BY trans_date) AS lag1_oper_result,
+				oper_result	
+			from de11an.kart_dwh_fact_trasactions
+		) as tr
+		left join de11an.kart_dwh_dim_cards_hist card
+			on trim(tr.card_num) = trim(card.card_num)
+		left join de11an.kart_dwh_dim_accounts_hist acc
+			on trim(card.account_num) = trim(acc.account_num)
+		left join de11an.kart_dwh_dim_clients_hist cl
+			on trim(acc.client) = trim(cl.client_id)
+		Where 1=1
+			and oper_result = 'SUCCESS' ----более 3х операций, отклонены все кроме последней
+			and lag1_oper_result = 'REJECT' 
+			and lag2_oper_result = 'REJECT'
+			and lag3_oper_result = 'REJECT'
+			and amt < lag1_amt and lag1_amt < lag2_amt and lag2_amt < lag3_amt --каждая последующая меньше предыдущей
+			and (trans_date - lag3_trans_date) <= time '00:20' --В течение 20 минут
+			and date(trans_date) > (select max(max_update_dt) from de11an.kart_meta_all)  -- фильтр - только записи текущего дня
+		);
+""")
+conn.commit()
+
+########################################################################################################
 #-- Обновление метаданных.
 cursor.execute( """	
 	update de11an.kart_meta_all
